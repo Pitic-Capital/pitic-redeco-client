@@ -2,7 +2,7 @@
    "name": "pitic-redeco-client",
    "version": "1.0.0",
    "private": true,
-   "homepage": "https://CesarDeno.github.io/pitic-redeco-client",
+   "homepage": "https://Pitic-Capital.github.io/pitic-redeco-client",
    "dependencies": {
       "@date-io/date-fns": "^3.2.1",
       "@emotion/react": "^11.14.0",
