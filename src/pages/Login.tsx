@@ -1,19 +1,26 @@
-import { Alert, Box, Button, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, FormControlLabel, Switch, TextField, Tooltip, Typography } from "@mui/material";
 import axios from "axios";
 import { useState } from "react";
-import { API_URL } from "../const/api_urls";
+import { ENV_KEY, getApiUrl } from "../const/api_urls";
 
 const Login = ({ setToken }) => {
    const [username, setUsername] = useState("");
    const [password, setPassword] = useState("");
    const [error, setError] = useState("");
    const [success, setSuccess] = useState("");
+   const [isTest, setIsTest] = useState(() => localStorage.getItem(ENV_KEY) === "test");
+
+   const handleEnvToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.checked ? "test" : "prod";
+      localStorage.setItem(ENV_KEY, value);
+      setIsTest(e.target.checked);
+   };
 
    const iniciarSesion = async () => {
       setError("");
       setSuccess("");
 
-      const url = API_URL?.replace(/\/+$/, "") + "/auth/users/token/";
+      const url = getApiUrl().replace(/\/+$/, "") + "/auth/users/token/";
       const credentials = { username, password };
 
       try {
@@ -24,11 +31,11 @@ const Login = ({ setToken }) => {
          const token = response.data.user?.token_access;
          if (!token) throw new Error("Token no encontrado en la respuesta");
 
-         localStorage.setItem("AUTH_TOKEN", token);
+         localStorage.setItem("AUTH_TOKEN_REDECO", token);
          setToken(token);
-         setSuccess("Inicio de sesión exitoso ✅");
+         setSuccess("Inicio de sesión exitoso");
       } catch (err) {
-         setError("Error al consultar quejas: " + err?.response?.data?.message || err.message)
+         setError("Error al consultar quejas: " + (err?.response?.data?.message || err.message));
       }
    };
 
@@ -63,12 +70,36 @@ const Login = ({ setToken }) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
          />
+
          {error && <Alert severity="error">{error}</Alert>}
          {success && <Alert severity="success">{success}</Alert>}
 
          <Button variant="contained" fullWidth onClick={iniciarSesion} sx={{ bgcolor: "#305e58ff" }}>
             Iniciar sesión
          </Button>
+
+         <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Tooltip title={`Ambiente activo: ${isTest ? "Test" : "Produccion"}`}>
+               <FormControlLabel
+                  control={
+                     <Switch
+                        checked={isTest}
+                        onChange={handleEnvToggle}
+                        size="small"
+                        sx={{
+                           "& .MuiSwitch-thumb": { bgcolor: isTest ? "#f59e0b" : "#305e58ff" },
+                           "& .MuiSwitch-track": { bgcolor: isTest ? "#fde68a" : "#a7c5c2" },
+                        }}
+                     />
+                  }
+                  label={
+                     <Typography variant="caption" color="text.secondary">
+                        {isTest ? "Test" : "Producción"}
+                     </Typography>
+                  }
+               />
+            </Tooltip>
+         </Box>
       </Box>
    );
 };

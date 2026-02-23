@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
-import { API_URL } from "../const/api_urls";
+import { getApiUrl } from "../const/api_urls";
 
 const AUTH_HEADER = () => {
    const token = localStorage.getItem("AUTH_TOKEN");
@@ -11,7 +11,7 @@ const fetchFromApi = async (endpoint: string, params = "") => {
    const headers = AUTH_HEADER();
    if (!headers) return [];
    try {
-      const { data } = await axios.get(`${API_URL}${endpoint}${params}`, { headers });
+      const { data } = await axios.get(`${getApiUrl()}${endpoint}${params}`, { headers });
       return data;
    } catch (error) {
       console.error(`Error fetching ${endpoint}:`, error);

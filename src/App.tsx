@@ -8,7 +8,7 @@ function App() {
    const [token, setToken] = useState(null);
 
    useEffect(() => {
-      const savedToken = localStorage.getItem("AUTH_TOKEN");
+      const savedToken = localStorage.getItem("AUTH_TOKEN_REDECO");
       setToken(savedToken);
    }, []);
 

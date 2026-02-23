@@ -6,7 +6,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DatePicker } from "@mui/x-date-pickers";
 import { es } from "date-fns/locale";
-import { API_URL } from "../const/api_urls";
+import { getApiUrl } from "../const/api_urls";
 import { useCatalogues } from "../context/CataloguesContext";
 
 const Form = () => {
@@ -223,7 +223,7 @@ const Form = () => {
             onChange: () => {},
          },
       }),
-      [causas, postalCodes, municipalities, neighborhoods]
+      [causas, postalCodes, municipalities, neighborhoods],
    );
 
    const defaultValues = Object.fromEntries(Object.entries(fieldConfig).map(([key, config]) => [key, config.default]));
@@ -236,7 +236,7 @@ const Form = () => {
       const date = new Date(dateStr);
       const day = String(date.getDate()).padStart(2, "0");
       const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = String(date.getFullYear())
+      const year = String(date.getFullYear());
       return `${day}/${month}/${year}`;
    };
 
@@ -255,7 +255,7 @@ const Form = () => {
 
          console.log({ formattedData });
 
-         await axios.post(`${API_URL}/redeco/quejas`, formattedData, { headers });
+         await axios.post(`${getApiUrl()}/redeco/quejas`, formattedData, { headers });
       } catch (err) {
          setError("Error al enviar queja: " + (err?.response?.data?.error || err.message));
       }
