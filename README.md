@@ -61,15 +61,21 @@ Tipos TypeScript para todos los payloads y respuestas de la API (`Queja`, `Token
 
 ### `src/components/`
 
-| Archivo                | Descripcion                                                                        |
-| ---------------------- | ---------------------------------------------------------------------------------- |
-| `Form.tsx`             | Formulario para el registro de quejas con todos los campos del diccionario REDECO. |
-| `ComplaintConsult.tsx` | Consulta de quejas por mes y ano.                                                  |
-| `Catalogues.tsx`       | Visualizacion de los catalogos disponibles de la institucion.                      |
+| Archivo                          | Descripcion                                                                                                                  |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `Form.tsx`                       | Formulario para el registro de quejas. En ambiente `test` muestra un botón de datos de prueba con folio único por timestamp. |
+| `ComplaintConsult.tsx`           | Consulta y eliminacion de quejas por mes y ano.                                                                              |
+| `Catalogues.tsx`                 | Visualizacion de los catalogos disponibles de la institucion.                                                                |
+| `Common/TableComponent.tsx`      | Tabla generica paginada con soporte de scroll horizontal y columna de eliminar opcional.                                     |
+| `Common/ConfirmDeleteDialog.tsx` | Dialog de confirmacion de eliminacion reutilizable con tema de empresa.                                                      |
 
 ### `src/context/CataloguesContext.tsx`
 
-Context global que carga y expone los catalogos de REDECO y SEPOMEX al inicio de la sesion. Disponible en todos los componentes via `useCatalogues()`.
+Context global que carga y expone los catalogos de REDECO y SEPOMEX al inicio de la sesion. Disponible en todos los componentes via `useCatalogues()`. Implementa retry con backoff exponencial (hasta 3 intentos).
+
+### `src/context/SnackbarContext.tsx`
+
+Context global de notificaciones. Expone `useSnackbar()` con `showSnackbar(message, severity)`. El Snackbar aparece en la parte inferior centrado, con colores pasteles por severidad (`success / error / warning / info`).
 
 ---
 
