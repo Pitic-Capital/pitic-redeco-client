@@ -1,12 +1,26 @@
-import { Alert, Box, Button, FormControlLabel, Switch, TextField, Tooltip, Typography } from "@mui/material";
+import {
+   Alert,
+   Box,
+   Button,
+   CircularProgress,
+   FormControlLabel,
+   IconButton,
+   InputAdornment,
+   Switch,
+   TextField,
+   Tooltip,
+   Typography,
+} from "@mui/material";
 import { useState } from "react";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { ENV_KEY, renewToken } from "../api/redeco.client";
 
 const Login = ({ setToken }) => {
    const [username, setUsername] = useState("");
    const [password, setPassword] = useState("");
+   const [showPassword, setShowPassword] = useState(false);
    const [error, setError] = useState("");
-   const [success, setSuccess] = useState("");
+   const [loading, setLoading] = useState(false);
    const [isTest, setIsTest] = useState(() => localStorage.getItem(ENV_KEY) === "test");
 
    const handleEnvToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -16,8 +30,13 @@ const Login = ({ setToken }) => {
    };
 
    const iniciarSesion = async () => {
+      if (!username.trim() || !password.trim()) {
+         setError("Usuario y contraseña son requeridos.");
+         return;
+      }
+
       setError("");
-      setSuccess("");
+      setLoading(true);
 
       try {
          const response = await renewToken({ username, password });
@@ -26,10 +45,15 @@ const Login = ({ setToken }) => {
 
          localStorage.setItem("AUTH_TOKEN_REDECO", token);
          setToken(token);
-         setSuccess("Inicio de sesión exitoso");
       } catch (err) {
-         setError("Error al consultar quejas: " + (err?.response?.data?.message || err.message));
+         setError("Credenciales incorrectas o error de conexion: " + (err?.response?.data?.message || err.message));
+      } finally {
+         setLoading(false);
       }
+   };
+
+   const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") iniciarSesion();
    };
 
    return (
@@ -53,22 +77,48 @@ const Login = ({ setToken }) => {
             variant="outlined"
             fullWidth
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+               setUsername(e.target.value);
+               setError("");
+            }}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            autoFocus
          />
          <TextField
             label="Contraseña"
             variant="outlined"
-            type="password"
+            type={showPassword ? "text" : "password"}
             fullWidth
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+               setPassword(e.target.value);
+               setError("");
+            }}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            InputProps={{
+               endAdornment: (
+                  <InputAdornment position="end">
+                     <IconButton onClick={() => setShowPassword((prev) => !prev)} edge="end">
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                     </IconButton>
+                  </InputAdornment>
+               ),
+            }}
          />
 
          {error && <Alert severity="error">{error}</Alert>}
-         {success && <Alert severity="success">{success}</Alert>}
 
-         <Button variant="contained" fullWidth onClick={iniciarSesion} sx={{ bgcolor: "#305e58ff" }}>
-            Iniciar sesión
+         <Button
+            variant="contained"
+            fullWidth
+            onClick={iniciarSesion}
+            disabled={loading}
+            sx={{ bgcolor: "#305e58ff" }}
+            startIcon={loading ? <CircularProgress size={18} color="inherit" /> : null}
+         >
+            {loading ? "Iniciando sesión..." : "Iniciar sesión"}
          </Button>
 
          <Box sx={{ display: "flex", justifyContent: "center" }}>

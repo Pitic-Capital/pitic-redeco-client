@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------------------
-// Autenticacion
-// ---------------------------------------------------------------------------
-
+//#region Autenticacion
 export interface CreateSuperUserPayload {
    key: string;
    username: string;
@@ -27,11 +24,9 @@ export interface TokenResponse {
       username: string;
    };
 }
+//#endregion
 
-// ---------------------------------------------------------------------------
-// Quejas
-// ---------------------------------------------------------------------------
-
+//#region Quejas
 export interface Queja {
    QuejasDenominacion: string;
    QuejasSector: string;
@@ -70,3 +65,39 @@ export interface EnvioQuejasErrorResponse {
    errors: Record<string, string[]>;
    message: string;
 }
+//#endregion
+
+//#region Catalogos institucionales
+export interface MedioRecepcion {
+   medioId: number;
+   medio: string;
+}
+
+export interface NivelAtencion {
+   nivelId: number;
+   nivel: string;
+}
+
+export interface Producto {
+   productoId: string;
+   producto: string;
+}
+
+export interface Causa {
+   causaId: string;
+   causa: string;
+}
+//#endregion
+
+//#region SEPOMEX
+export interface Estado {
+   estadoId: number;
+   estado: string;
+}
+
+/** Forma normalizada usada internamente para selects de SEPOMEX */
+export interface SelectOption {
+   id: string | number;
+   label: string;
+}
+//#endregion

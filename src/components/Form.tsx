@@ -1,4 +1,16 @@
-import { TextField, Button, Stack, Alert, Box, MenuItem, Select, FormControl, InputLabel } from "@mui/material";
+import {
+   TextField,
+   Button,
+   Stack,
+   Alert,
+   Box,
+   CircularProgress,
+   MenuItem,
+   Select,
+   FormControl,
+   InputLabel,
+   Typography,
+} from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -18,7 +30,9 @@ const Form = () => {
       postalCodes,
       municipalities,
       neighborhoods,
+      loading: catalogsLoading,
       fetchCausas,
+      fetchPostalCodes,
       fetchMunicipalities,
       fetchNeighborhoods,
    } = useCatalogues();
@@ -33,11 +47,13 @@ const Form = () => {
 
    const getFirstId = (arr) => (arr?.length ? Object.values(arr[0])[0] : null);
 
+   // Cuando productos carga, obtener causas del primer producto y datos geograficos por defecto
    useEffect(() => {
+      if (!productos.length) return;
       fetchCausas(getFirstId(productos) as string);
       fetchMunicipalities("26", "83000");
       fetchNeighborhoods("83000");
-   }, []);
+   }, [productos]);
 
    const fieldConfig = useMemo(
       () => ({
@@ -130,7 +146,9 @@ const Form = () => {
             type: "select",
             options: mapOptions(estados),
             default: 26,
-            onChange: () => {},
+            onChange: (value) => {
+               fetchPostalCodes(String(value));
+            },
          },
          QuejasMunId: {
             label: "Municipio o Alcaldía",
@@ -222,7 +240,7 @@ const Form = () => {
             onChange: () => {},
          },
       }),
-      [causas, postalCodes, municipalities, neighborhoods],
+      [mediosRecepcion, nivelesAtencion, productos, estados, causas, postalCodes, municipalities, neighborhoods],
    );
 
    const defaultValues = Object.fromEntries(Object.entries(fieldConfig).map(([key, config]) => [key, config.default]));
@@ -231,13 +249,18 @@ const Form = () => {
 
    const [error, setError] = useState("");
 
-   const formatToDDMMYY = (dateStr: string) => {
-      const date = new Date(dateStr);
+   const formatToDDMMYY = (value: Date | string | null): string | null => {
+      if (!value) return null;
+      const date = value instanceof Date ? value : new Date(value);
+      if (isNaN(date.getTime())) return null;
       const day = String(date.getDate()).padStart(2, "0");
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = String(date.getFullYear());
       return `${day}/${month}/${year}`;
    };
+
+   /** La API requiere "null" como string para campos opcionales sin valor */
+   const toApiValue = (value: any) => (value === null || value === undefined || value === "" ? "null" : value);
 
    const onSubmit = async (data: any) => {
       const token = localStorage.getItem("AUTH_TOKEN_REDECO");
@@ -246,13 +269,19 @@ const Form = () => {
       try {
          const formattedData = {
             ...data,
-            QuejasFecNotificacion: data.QuejasFecNotificacion ? formatToDDMMYY(data.QuejasFecNotificacion) : null,
-            QuejasFecRecepcion: data.QuejasFecRecepcion ? formatToDDMMYY(data.QuejasFecRecepcion) : null,
-            QuejasFecResolucion: data.QuejasFecResolucion ? formatToDDMMYY(data.QuejasFecResolucion) : null,
+            QuejasCP: Number(data.QuejasCP),
+            QuejasFecRecepcion: formatToDDMMYY(data.QuejasFecRecepcion),
+            QuejasFecResolucion: formatToDDMMYY(data.QuejasFecResolucion) ?? "null",
+            QuejasFecNotificacion: formatToDDMMYY(data.QuejasFecNotificacion) ?? "null",
+            QuejasLocId: toApiValue(data.QuejasLocId),
+            QuejasRespuesta: toApiValue(data.QuejasRespuesta),
+            QuejasNumPenal: toApiValue(data.QuejasNumPenal || null),
+            QuejasPenalizacion: toApiValue(data.QuejasPenalizacion || null),
+            QuejasSexo: toApiValue(data.QuejasSexo),
+            QuejasEdad: toApiValue(data.QuejasEdad || null),
          };
 
          console.log({ formattedData });
-
          await sendQuejas(token, [formattedData]);
       } catch (err) {
          setError("Error al enviar queja: " + (err?.response?.data?.error || err.message));
@@ -261,104 +290,113 @@ const Form = () => {
 
    return (
       <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-         <form onSubmit={handleSubmit(onSubmit)}>
-            <Stack spacing={2}>
-               <Box
-                  sx={{
-                     display: "flex",
-                     flexWrap: "wrap",
-                     gap: 2,
-                  }}
-               >
-                  {Object.entries(fieldConfig).map(([name, config]) => (
+         <Box sx={{ maxWidth: 960, mx: "auto", width: "100%" }}>
+            {catalogsLoading ? (
+               <Box sx={{ display: "flex", alignItems: "center", gap: 2, py: 4, justifyContent: "center" }}>
+                  <CircularProgress size={24} sx={{ color: "#305e58ff" }} />
+                  <Typography color="text.secondary">Cargando catálogos...</Typography>
+               </Box>
+            ) : (
+               <form onSubmit={handleSubmit(onSubmit)}>
+                  <Stack spacing={2}>
                      <Box
-                        key={name}
                         sx={{
-                           flex: "1 1 45%",
-                           minWidth: "250px",
+                           display: "flex",
+                           flexWrap: "wrap",
+                           gap: 2,
                         }}
                      >
-                        <Controller
-                           name={name}
-                           control={control}
-                           defaultValue=""
-                           render={({ field }) => {
-                              switch (config.type) {
-                                 case "date":
-                                    return (
-                                       <DatePicker
-                                          label={config.label}
-                                          value={(field.value as Date) || null}
-                                          onChange={(date) => field.onChange(date)}
-                                          slotProps={{ textField: { size: "small", fullWidth: true } }}
-                                          minDate={new Date("2000-01-01")}
-                                          maxDate={new Date()}
-                                       />
-                                    );
-                                 case "select":
-                                    return (
-                                       <FormControl fullWidth>
-                                          <InputLabel>{config.label}</InputLabel>
-                                          <Controller
-                                             name={name}
-                                             control={control}
-                                             render={({ field }) => (
-                                                <Select
-                                                   {...field}
-                                                   label={fieldConfig[name].label}
-                                                   size="small"
-                                                   onChange={(e) => {
-                                                      field.onChange(e);
-                                                      fieldConfig[name]?.onChange?.(e.target.value);
-                                                   }}
-                                                   MenuProps={{
-                                                      PaperProps: {
-                                                         style: {
-                                                            maxHeight: 300,
-                                                            overflow: "auto",
-                                                            whiteSpace: "normal",
-                                                            wordBreak: "break-word",
-                                                         },
-                                                      },
-                                                   }}
-                                                >
-                                                   {fieldConfig[name].options.map((option) => (
-                                                      <MenuItem key={option.id} value={option.id}>
-                                                         {option.label}
-                                                      </MenuItem>
-                                                   ))}
-                                                </Select>
-                                             )}
-                                          />
-                                       </FormControl>
-                                    );
-                                 default:
-                                    return (
-                                       <TextField
-                                          {...field}
-                                          type={config.type === "number" ? "number" : "text"}
-                                          label={config.label}
-                                          fullWidth
-                                          variant="outlined"
-                                          size="small"
-                                          onChange={(e) => {
-                                             field.onChange(e);
-                                             config.onChange?.(e.target.value);
-                                          }}
-                                       />
-                                    );
-                              }
-                           }}
-                        />
+                        {Object.entries(fieldConfig).map(([name, config]) => (
+                           <Box
+                              key={name}
+                              sx={{
+                                 flex: "1 1 45%",
+                                 minWidth: "250px",
+                              }}
+                           >
+                              <Controller
+                                 name={name}
+                                 control={control}
+                                 defaultValue=""
+                                 render={({ field }) => {
+                                    switch (config.type) {
+                                       case "date":
+                                          return (
+                                             <DatePicker
+                                                label={config.label}
+                                                value={(field.value as Date) || null}
+                                                onChange={(date) => field.onChange(date)}
+                                                slotProps={{ textField: { size: "small", fullWidth: true } }}
+                                                minDate={new Date("2000-01-01")}
+                                                maxDate={new Date()}
+                                             />
+                                          );
+                                       case "select":
+                                          return (
+                                             <FormControl fullWidth>
+                                                <InputLabel>{config.label}</InputLabel>
+                                                <Controller
+                                                   name={name}
+                                                   control={control}
+                                                   render={({ field }) => (
+                                                      <Select
+                                                         {...field}
+                                                         label={fieldConfig[name].label}
+                                                         size="small"
+                                                         onChange={(e) => {
+                                                            field.onChange(e);
+                                                            fieldConfig[name]?.onChange?.(e.target.value);
+                                                         }}
+                                                         MenuProps={{
+                                                            PaperProps: {
+                                                               style: {
+                                                                  maxHeight: 300,
+                                                                  overflow: "auto",
+                                                                  whiteSpace: "normal",
+                                                                  wordBreak: "break-word",
+                                                               },
+                                                            },
+                                                         }}
+                                                      >
+                                                         {fieldConfig[name].options.map((option) => (
+                                                            <MenuItem key={option.id} value={option.id}>
+                                                               {option.label}
+                                                            </MenuItem>
+                                                         ))}
+                                                      </Select>
+                                                   )}
+                                                />
+                                             </FormControl>
+                                          );
+                                       default:
+                                          return (
+                                             <TextField
+                                                {...field}
+                                                type={config.type === "number" ? "number" : "text"}
+                                                label={config.label}
+                                                fullWidth
+                                                variant="outlined"
+                                                size="small"
+                                                onChange={(e) => {
+                                                   field.onChange(e);
+                                                   config.onChange?.(e.target.value);
+                                                }}
+                                             />
+                                          );
+                                    }
+                                 }}
+                              />
+                           </Box>
+                        ))}
                      </Box>
-                  ))}
-               </Box>
-               <Button type="submit" variant="contained" sx={{ bgcolor: "#305e58ff" }}>
-                  Enviar
-               </Button>
-               {error && <Alert severity="error">{error}</Alert>}
-            </Stack>
-         </form>
+                     <Button type="submit" variant="contained" sx={{ bgcolor: "#305e58ff" }}>
+                        Enviar
+                     </Button>
+                     {error && <Alert severity="error">{error}</Alert>}
+                  </Stack>
+               </form>
+            )}
+         </Box>
       </LocalizationProvider>
    );
 };

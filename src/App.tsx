@@ -23,18 +23,18 @@ function App() {
                width: "100vw",
                display: "flex",
                justifyContent: "center",
-               alignItems: "center",
-               p: { xs: 2, sm: 4, md: 6 },
+               alignItems: token ? "flex-start" : "center",
+               p: token ? 0 : { xs: 2, sm: 4, md: 6 },
             }}
          >
             <Box
                sx={{
                   width: "100%",
-                  maxWidth: 600,
+                  maxWidth: token ? "100%" : 480,
                   bgcolor: "white",
-                  borderRadius: 2,
-                  boxShadow: 3,
-                  p: { xs: 2, sm: 3 },
+                  borderRadius: token ? 0 : 2,
+                  boxShadow: token ? 0 : 3,
+                  p: token ? 0 : { xs: 2, sm: 3 },
                }}
             >
                {token ? <Dashboard setToken={setToken} /> : <Login setToken={setToken} />}
