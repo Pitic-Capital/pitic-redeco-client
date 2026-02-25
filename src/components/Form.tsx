@@ -1,12 +1,11 @@
 import { TextField, Button, Stack, Alert, Box, MenuItem, Select, FormControl, InputLabel } from "@mui/material";
-import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DatePicker } from "@mui/x-date-pickers";
 import { es } from "date-fns/locale";
-import { getApiUrl } from "../const/api_urls";
+import { sendQuejas } from "../api/redeco.client";
 import { useCatalogues } from "../context/CataloguesContext";
 
 const Form = () => {
@@ -241,9 +240,8 @@ const Form = () => {
    };
 
    const onSubmit = async (data: any) => {
-      const token = localStorage.getItem("AUTH_TOKEN");
+      const token = localStorage.getItem("AUTH_TOKEN_REDECO");
       if (!token) return;
-      const headers = { Authorization: token };
 
       try {
          const formattedData = {
@@ -255,7 +253,7 @@ const Form = () => {
 
          console.log({ formattedData });
 
-         await axios.post(`${getApiUrl()}/redeco/quejas`, formattedData, { headers });
+         await sendQuejas(token, [formattedData]);
       } catch (err) {
          setError("Error al enviar queja: " + (err?.response?.data?.error || err.message));
       }

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Alert, Box, Button, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
-import axios from "axios";
-import { getApiUrl } from "../const/api_urls";
+import { getQuejas } from "../api/redeco.client";
 import { TableComponent } from "./Common/TableComponent";
 
 const meses = [
@@ -30,16 +29,14 @@ const ComplaintConsult = () => {
 
    const handleConsultar = async () => {
       setError("");
-      const token = localStorage.getItem("AUTH_TOKEN");
+      const token = localStorage.getItem("AUTH_TOKEN_REDECO");
       if (!token) return setError("Token no disponible");
 
       const mesNumero = meses.indexOf(mes) + 1;
       if (!mesNumero) return setError("Mes inválido");
 
       try {
-         const { data } = await axios.get(`${getApiUrl()}/redeco/quejas/?year=${anio}&month=${mesNumero}`, {
-            headers: { Authorization: token },
-         });
+         const { data } = await getQuejas(token, anio, mesNumero);
          setConsultData(data?.quejas);
 
          if (Array.isArray(data?.quejas) && data?.quejas.length === 0) {

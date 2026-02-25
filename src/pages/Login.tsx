@@ -1,7 +1,6 @@
 import { Alert, Box, Button, FormControlLabel, Switch, TextField, Tooltip, Typography } from "@mui/material";
-import axios from "axios";
 import { useState } from "react";
-import { ENV_KEY, getApiUrl } from "../const/api_urls";
+import { ENV_KEY, renewToken } from "../api/redeco.client";
 
 const Login = ({ setToken }) => {
    const [username, setUsername] = useState("");
@@ -20,14 +19,8 @@ const Login = ({ setToken }) => {
       setError("");
       setSuccess("");
 
-      const url = getApiUrl().replace(/\/+$/, "") + "/auth/users/token/";
-      const credentials = { username, password };
-
       try {
-         const response = await axios.post(url, credentials, {
-            headers: { "Content-Type": "application/json" },
-         });
-
+         const response = await renewToken({ username, password });
          const token = response.data.user?.token_access;
          if (!token) throw new Error("Token no encontrado en la respuesta");
 
