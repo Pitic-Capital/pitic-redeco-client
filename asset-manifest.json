@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/pitic-redeco-client/static/css/main.e6c13ad2.css",
+    "main.js": "/pitic-redeco-client/static/js/main.1e96b234.js",
+    "static/js/453.195567a6.chunk.js": "/pitic-redeco-client/static/js/453.195567a6.chunk.js",
+    "index.html": "/pitic-redeco-client/index.html",
+    "main.e6c13ad2.css.map": "/pitic-redeco-client/static/css/main.e6c13ad2.css.map",
+    "main.1e96b234.js.map": "/pitic-redeco-client/static/js/main.1e96b234.js.map",
+    "453.195567a6.chunk.js.map": "/pitic-redeco-client/static/js/453.195567a6.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.1e96b234.js"
+  ]
+}
