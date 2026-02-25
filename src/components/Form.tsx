@@ -2,8 +2,8 @@ import {
    TextField,
    Button,
    Stack,
-   Alert,
    Box,
+   Chip,
    CircularProgress,
    MenuItem,
    Select,
@@ -11,7 +11,7 @@ import {
    InputLabel,
    Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -19,6 +19,7 @@ import { DatePicker } from "@mui/x-date-pickers";
 import { es } from "date-fns/locale";
 import { sendQuejas } from "../api/redeco.client";
 import { useCatalogues } from "../context/CataloguesContext";
+import { useSnackbar } from "../context/SnackbarContext";
 
 const Form = () => {
    const {
@@ -245,9 +246,41 @@ const Form = () => {
 
    const defaultValues = Object.fromEntries(Object.entries(fieldConfig).map(([key, config]) => [key, config.default]));
 
-   const { control, handleSubmit } = useForm({ defaultValues });
+   const { control, handleSubmit, reset } = useForm({ defaultValues });
 
-   const [error, setError] = useState("");
+   const isTestEnv = localStorage.getItem("APP_ENV") === "test";
+
+   const fillTestData = () => {
+      const folio = `TEST/${new Date().getFullYear()}/REDECO_${Date.now()}`;
+      reset({
+         ...defaultValues,
+         QuejasFolio: folio,
+         QuejasNoMes: 1,
+         QuejasNum: 1,
+         QuejasFecRecepcion: new Date(new Date().getFullYear(), 0, 1), // 01/01/año actual
+         QuejasMedio: getFirstId(mediosRecepcion),
+         QuejasNivelAT: getFirstId(nivelesAtencion),
+         QuejasProducto: getFirstId(productos),
+         QuejasCausa: getFirstId(causas),
+         QuejasPORI: "NO",
+         QuejasEstatus: 1,
+         QuejasEstados: 26,
+         QuejasMunId: getFirstId(municipalities) ?? 30,
+         QuejasLocId: null,
+         QuejasColId: getFirstId(neighborhoods),
+         QuejasCP: 83000,
+         QuejasTipoPersona: 1,
+         QuejasSexo: "H",
+         QuejasEdad: 25,
+         QuejasFecResolucion: null,
+         QuejasFecNotificacion: null,
+         QuejasRespuesta: null,
+         QuejasNumPenal: null,
+         QuejasPenalizacion: null,
+      });
+   };
+
+   const { showSnackbar } = useSnackbar();
 
    const formatToDDMMYY = (value: Date | string | null): string | null => {
       if (!value) return null;
@@ -259,32 +292,47 @@ const Form = () => {
       return `${day}/${month}/${year}`;
    };
 
-   /** La API requiere "null" como string para campos opcionales sin valor */
-   const toApiValue = (value: any) => (value === null || value === undefined || value === "" ? "null" : value);
+   /** Campos de texto opcionales sin valor → "null" string (requisito API) */
+   const toNullStr = (v: any) => (v === null || v === undefined || v === "" ? "null" : v);
+   /** Campos numéricos opcionales sin valor → null JS (la API valida el tipo) */
+   const toNullNum = (v: any): number | null =>
+      v === null || v === undefined || v === 0 || v === "" ? null : Number(v);
 
    const onSubmit = async (data: any) => {
       const token = localStorage.getItem("AUTH_TOKEN_REDECO");
       if (!token) return;
+
+      const pendiente = Number(data.QuejasEstatus) === 1;
 
       try {
          const formattedData = {
             ...data,
             QuejasCP: Number(data.QuejasCP),
             QuejasFecRecepcion: formatToDDMMYY(data.QuejasFecRecepcion),
-            QuejasFecResolucion: formatToDDMMYY(data.QuejasFecResolucion) ?? "null",
-            QuejasFecNotificacion: formatToDDMMYY(data.QuejasFecNotificacion) ?? "null",
-            QuejasLocId: toApiValue(data.QuejasLocId),
-            QuejasRespuesta: toApiValue(data.QuejasRespuesta),
-            QuejasNumPenal: toApiValue(data.QuejasNumPenal || null),
-            QuejasPenalizacion: toApiValue(data.QuejasPenalizacion || null),
-            QuejasSexo: toApiValue(data.QuejasSexo),
-            QuejasEdad: toApiValue(data.QuejasEdad || null),
+            // Si status=Pendiente, estas fechas y campos DEBEN ser null (no "null" string)
+            QuejasFecResolucion: pendiente ? null : (formatToDDMMYY(data.QuejasFecResolucion) ?? null),
+            QuejasFecNotificacion: pendiente ? null : (formatToDDMMYY(data.QuejasFecNotificacion) ?? null),
+            QuejasRespuesta: pendiente ? null : toNullNum(data.QuejasRespuesta),
+            // Numericos opcionales
+            QuejasLocId: toNullNum(data.QuejasLocId),
+            QuejasNumPenal: toNullNum(data.QuejasNumPenal),
+            QuejasPenalizacion: toNullNum(data.QuejasPenalizacion),
+            QuejasEdad: toNullNum(data.QuejasEdad),
+            // String/char opcionales
+            QuejasSexo: toNullStr(data.QuejasSexo),
          };
 
-         console.log({ formattedData });
-         await sendQuejas(token, [formattedData]);
-      } catch (err) {
-         setError("Error al enviar queja: " + (err?.response?.data?.error || err.message));
+         const res = await sendQuejas(token, [formattedData]);
+         const foliosEnviados = res?.data?.["Quejas enviadas"]?.join(", ") ?? data.QuejasFolio;
+         showSnackbar(`Queja enviada correctamente. Folio: ${foliosEnviados}`, "success");
+         reset(defaultValues);
+      } catch (err: any) {
+         const apiErrors = err?.response?.data?.errors;
+         if (apiErrors) {
+            showSnackbar((Object.values(apiErrors) as string[][]).flat().join("\n"), "error");
+         } else {
+            showSnackbar(err?.response?.data?.message || err.message || "Error desconocido", "error");
+         }
       }
    };
 
@@ -299,6 +347,34 @@ const Form = () => {
             ) : (
                <form onSubmit={handleSubmit(onSubmit)}>
                   <Stack spacing={2}>
+                     {/* Banner de ambiente de pruebas */}
+                     {isTestEnv && (
+                        <Box
+                           sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              p: 1.5,
+                              bgcolor: "#fff8e1",
+                              borderRadius: 1,
+                              border: "1px solid #ffe082",
+                           }}
+                        >
+                           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <Chip
+                                 label="TEST"
+                                 size="small"
+                                 sx={{ bgcolor: "#f57c00", color: "#fff", fontWeight: "bold", fontSize: 10 }}
+                              />
+                              <Typography variant="caption" color="text.secondary">
+                                 Ambiente de pruebas
+                              </Typography>
+                           </Box>
+                           <Button size="small" variant="outlined" color="warning" onClick={fillTestData}>
+                              Llenar datos de prueba
+                           </Button>
+                        </Box>
+                     )}
                      <Box
                         sx={{
                            display: "flex",
@@ -317,7 +393,6 @@ const Form = () => {
                               <Controller
                                  name={name}
                                  control={control}
-                                 defaultValue=""
                                  render={({ field }) => {
                                     switch (config.type) {
                                        case "date":
@@ -392,7 +467,6 @@ const Form = () => {
                      <Button type="submit" variant="contained" sx={{ bgcolor: "#305e58ff" }}>
                         Enviar
                      </Button>
-                     {error && <Alert severity="error">{error}</Alert>}
                   </Stack>
                </form>
             )}

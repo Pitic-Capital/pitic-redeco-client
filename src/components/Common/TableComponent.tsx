@@ -1,7 +1,7 @@
 import {
    Box,
    Chip,
-   InputAdornment,
+   IconButton,
    Paper,
    Table,
    TableBody,
@@ -10,22 +10,22 @@ import {
    TableHead,
    TablePagination,
    TableRow,
-   TextField,
+   Tooltip,
    Typography,
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { useState } from "react";
 
 interface TableComponentProps {
    data: any[];
    label: string;
    rowsPerPageDefault?: number;
+   onDeleteRow?: (row: any) => void;
 }
 
-export const TableComponent = ({ data, label, rowsPerPageDefault = 10 }: TableComponentProps) => {
+export const TableComponent = ({ data, label, rowsPerPageDefault = 10, onDeleteRow }: TableComponentProps) => {
    const [page, setPage] = useState(0);
    const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageDefault);
-   const [search, setSearch] = useState("");
 
    const items: any[] = Array.isArray(data) ? data : Object.values(data ?? {});
 
@@ -38,29 +38,20 @@ export const TableComponent = ({ data, label, rowsPerPageDefault = 10 }: TableCo
 
    const keys = Object.keys(items[0]);
 
-   const filtered = search.trim()
-      ? items.filter((item) =>
-           keys.some((k) =>
-              String(item[k] ?? "")
-                 .toLowerCase()
-                 .includes(search.toLowerCase()),
-           ),
-        )
-      : items;
-
-   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+   const paginated = items.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
    return (
-      <TableContainer component={Paper} elevation={2}>
+      <TableContainer component={Paper} elevation={2} sx={{ overflowX: "auto" }}>
          {/* Header */}
          <Box
             sx={{
-               px: 2,
-               pt: 2,
+               px: { xs: 1.5, sm: 2 },
+               pt: { xs: 1.5, sm: 2 },
                pb: 1,
                display: "flex",
-               alignItems: "center",
+               alignItems: { xs: "flex-start", sm: "center" },
                justifyContent: "space-between",
+               flexDirection: { xs: "column", sm: "row" },
                flexWrap: "wrap",
                gap: 1,
             }}
@@ -69,22 +60,30 @@ export const TableComponent = ({ data, label, rowsPerPageDefault = 10 }: TableCo
                <Typography variant="subtitle1" fontWeight="bold" color="#305e58ff">
                   {label}
                </Typography>
-               <Chip label={filtered.length} size="small" sx={{ bgcolor: "#305e58ff", color: "#fff" }} />
+               <Chip label={items.length} size="small" sx={{ bgcolor: "#305e58ff", color: "#fff" }} />
             </Box>
          </Box>
 
          {/* Tabla */}
-         <Table size="small" stickyHeader>
+         <Table size="small" stickyHeader sx={{ minWidth: 400 }}>
             <TableHead>
                <TableRow>
                   {keys.map((key) => (
                      <TableCell
                         key={key}
-                        sx={{ bgcolor: "#305e58ff", color: "#fff", fontWeight: "bold", whiteSpace: "nowrap" }}
+                        sx={{
+                           bgcolor: "#305e58ff",
+                           color: "#fff",
+                           fontWeight: "bold",
+                           whiteSpace: "nowrap",
+                        }}
                      >
                         {key}
                      </TableCell>
                   ))}
+                  {onDeleteRow && (
+                     <TableCell sx={{ bgcolor: "#305e58ff", color: "#fff", fontWeight: "bold", width: 56 }}></TableCell>
+                  )}
                </TableRow>
             </TableHead>
             <TableBody>
@@ -92,26 +91,37 @@ export const TableComponent = ({ data, label, rowsPerPageDefault = 10 }: TableCo
                   paginated.map((item, idx) => (
                      <TableRow key={idx} hover sx={{ "&:hover": { bgcolor: "#f0f7f6" } }}>
                         {keys.map((key) => (
-                           <TableCell key={key} sx={{ maxWidth: 300, wordBreak: "break-word" }}>
-                              {item[key] ?? "—"}
-                           </TableCell>
+                           <TableCell key={key}>{item[key] ?? "—"}</TableCell>
                         ))}
+                        {onDeleteRow && (
+                           <TableCell align="center" sx={{ p: 0.5 }}>
+                              <Tooltip title="Eliminar">
+                                 <IconButton size="small" color="error" onClick={() => onDeleteRow(item)}>
+                                    <DeleteIcon fontSize="small" />
+                                 </IconButton>
+                              </Tooltip>
+                           </TableCell>
+                        )}
                      </TableRow>
                   ))
                ) : (
                   <TableRow>
-                     <TableCell colSpan={keys.length} align="center" sx={{ color: "text.secondary", py: 3 }}>
-                        Sin resultados para "{search}"
+                     <TableCell
+                        colSpan={keys.length + (onDeleteRow ? 1 : 0)}
+                        align="center"
+                        sx={{ color: "text.secondary", py: 3 }}
+                     >
+                        Sin datos disponibles
                      </TableCell>
                   </TableRow>
                )}
             </TableBody>
          </Table>
 
-         {filtered.length > rowsPerPageDefault && (
+         {items.length > rowsPerPageDefault && (
             <TablePagination
                component="div"
-               count={filtered.length}
+               count={items.length}
                page={page}
                onPageChange={(_, newPage) => setPage(newPage)}
                rowsPerPage={rowsPerPage}
@@ -122,6 +132,11 @@ export const TableComponent = ({ data, label, rowsPerPageDefault = 10 }: TableCo
                rowsPerPageOptions={[5, 10, 25, 50]}
                labelRowsPerPage="Filas:"
                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+               sx={{
+                  ".MuiTablePagination-selectLabel, .MuiTablePagination-select, .MuiTablePagination-selectIcon": {
+                     display: { xs: "none", sm: "flex" },
+                  },
+               }}
             />
          )}
       </TableContainer>

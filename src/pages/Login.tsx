@@ -1,5 +1,4 @@
 import {
-   Alert,
    Box,
    Button,
    CircularProgress,
@@ -14,14 +13,15 @@ import {
 import { useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { ENV_KEY, renewToken } from "../api/redeco.client";
+import { useSnackbar } from "../context/SnackbarContext";
 
 const Login = ({ setToken }) => {
    const [username, setUsername] = useState("");
    const [password, setPassword] = useState("");
    const [showPassword, setShowPassword] = useState(false);
-   const [error, setError] = useState("");
    const [loading, setLoading] = useState(false);
    const [isTest, setIsTest] = useState(() => localStorage.getItem(ENV_KEY) === "test");
+   const { showSnackbar } = useSnackbar();
 
    const handleEnvToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.checked ? "test" : "prod";
@@ -31,11 +31,9 @@ const Login = ({ setToken }) => {
 
    const iniciarSesion = async () => {
       if (!username.trim() || !password.trim()) {
-         setError("Usuario y contraseña son requeridos.");
+         showSnackbar("Usuario y contraseña son requeridos.", "warning");
          return;
       }
-
-      setError("");
       setLoading(true);
 
       try {
@@ -46,7 +44,10 @@ const Login = ({ setToken }) => {
          localStorage.setItem("AUTH_TOKEN_REDECO", token);
          setToken(token);
       } catch (err) {
-         setError("Credenciales incorrectas o error de conexion: " + (err?.response?.data?.message || err.message));
+         showSnackbar(
+            "Credenciales incorrectas o error de conexion: " + (err?.response?.data?.message || err.message),
+            "error",
+         );
       } finally {
          setLoading(false);
       }
@@ -79,7 +80,6 @@ const Login = ({ setToken }) => {
             value={username}
             onChange={(e) => {
                setUsername(e.target.value);
-               setError("");
             }}
             onKeyDown={handleKeyDown}
             disabled={loading}
@@ -93,7 +93,6 @@ const Login = ({ setToken }) => {
             value={password}
             onChange={(e) => {
                setPassword(e.target.value);
-               setError("");
             }}
             onKeyDown={handleKeyDown}
             disabled={loading}
@@ -107,8 +106,6 @@ const Login = ({ setToken }) => {
                ),
             }}
          />
-
-         {error && <Alert severity="error">{error}</Alert>}
 
          <Button
             variant="contained"
